@@ -1318,3 +1318,327 @@ def language_city_share(df: pd.DataFrame, n: int = 10, height: int = D.CHART_HEI
     fig.update_yaxes(autorange="reversed", showgrid=False, automargin=True)
     fig.update_xaxes(ticksuffix="%", showgrid=True, gridcolor=D.GRID)
     return fig
+
+
+# ============================================================ Crime Index & Quarterly Reports
+
+def calculate_crime_index(df: pd.DataFrame) -> pd.DataFrame:
+    """Calculate monthly Crime Index with Jan 2025 as the base benchmark (100.0)."""
+    if df.empty:
+        return pd.DataFrame(columns=["Month", "Month_Label", "Volume", "Index", "Delta_Base_Pct", "MoM_Pct"])
+    
+    months = _month_range(df)
+    m_labels = _month_names(months)
+    counts = df.groupby("Month").size().reindex(months, fill_value=0)
+    
+    # Baseline: January (Month 1) volume if present and > 0, else first available positive month
+    jan_volume = counts.get(1, 0)
+    if jan_volume == 0:
+        pos_counts = counts[counts > 0]
+        jan_volume = pos_counts.iloc[0] if not pos_counts.empty else 1
+    
+    index_values = (counts / jan_volume * 100).round(1)
+    delta_base = (index_values - 100.0).round(1)
+    mom_pct = (counts.pct_change() * 100).fillna(0.0).round(1)
+    
+    return pd.DataFrame({
+        "Month": months,
+        "Month_Label": m_labels,
+        "Volume": counts.values,
+        "Index": index_values.values,
+        "Delta_Base_Pct": delta_base.values,
+        "MoM_Pct": mom_pct.values,
+    })
+
+
+def crime_index_trend(df: pd.DataFrame, height: int = 400) -> go.Figure:
+    """Monthly Crime Index Trend with Jan 2025 = 100 Baseline indicator."""
+    if df.empty:
+        return _empty(height=height)
+    
+    idx_df = calculate_crime_index(df)
+    if idx_df.empty:
+        return _empty(height=height)
+    
+    fig = go.Figure()
+    
+    # Baseline 100 reference shading / line
+    fig.add_hline(
+        y=100,
+        line_width=2,
+        line_dash="dash",
+        line_color=D.MAROON,
+        annotation_text="Jan 2025 Baseline (100.0)",
+        annotation_position="top left",
+        annotation_font=dict(size=11, color=D.MAROON, family=D.FONT_UI),
+    )
+    
+    # Area fill under the line
+    fig.add_trace(go.Scatter(
+        x=idx_df["Month_Label"],
+        y=idx_df["Index"],
+        mode="lines",
+        line=dict(color=D.CRIMSON, width=3, shape="spline"),
+        fill="tozeroy",
+        fillcolor="rgba(179, 32, 42, 0.07)",
+        showlegend=False,
+        hoverinfo="skip",
+    ))
+    
+    # Marker colors: Crimson if >= 100 (more crime than baseline), Steel Blue if < 100 (less crime)
+    marker_colors = [D.CRIMSON if val >= 100 else D.STEEL_BLUE for val in idx_df["Index"]]
+    
+    # Formatted labels: Base for Jan, e.g. "90.6 (-9.4%)", "123.5 (+23.5%)"
+    labels = []
+    for i, row in idx_df.iterrows():
+        if row["Month"] == 1:
+            labels.append("<b>100.0</b><br><span style='font-size:10px;color:#6B7280;'>Base</span>")
+        else:
+            diff_sign = "+" if row["Delta_Base_Pct"] > 0 else ""
+            color = D.CRIMSON if row["Delta_Base_Pct"] >= 0 else D.STEEL_BLUE
+            labels.append(f"<b>{row['Index']:.1f}</b><br><span style='font-size:10px;color:{color};'>({diff_sign}{row['Delta_Base_Pct']:.1f}%)</span>")
+            
+    fig.add_trace(go.Scatter(
+        x=idx_df["Month_Label"],
+        y=idx_df["Index"],
+        mode="markers+text",
+        marker=dict(
+            size=11,
+            color=marker_colors,
+            line=dict(color=D.SURFACE, width=2.5),
+        ),
+        text=labels,
+        textposition="top center",
+        textfont=dict(family=D.FONT_UI, size=11, color=D.TEXT),
+        customdata=np.stack((idx_df["Volume"].values, idx_df["Delta_Base_Pct"].values, idx_df["MoM_Pct"].values), axis=-1),
+        hovertemplate=(
+            "<b>%{x} 2025</b><br>"
+            "Crime Index: <b>%{y:.1f}</b><br>"
+            "Reported Crimes: <b>%{customdata[0]:,}</b><br>"
+            "Vs Jan Baseline: <b>%{customdata[1]:+.1f}%</b><br>"
+            "Month-over-Month: <b>%{customdata[2]:+.1f}%</b>"
+            "<extra></extra>"
+        ),
+        showlegend=False,
+    ))
+    
+    min_idx = idx_df["Index"].min()
+    max_idx = idx_df["Index"].max()
+    y_min = max(0, min_idx - 18)
+    y_max = max_idx + 22
+    
+    _base_layout(fig, height, legend=False, margin=dict(l=16, r=16, t=24, b=24))
+    fig.update_yaxes(
+        title=dict(text="Crime Index (Jan 2025 = 100)", font=dict(size=11, color=D.TEXT_MUTED)),
+        range=[y_min, y_max],
+        showgrid=True,
+        gridcolor=D.GRID,
+    )
+    fig.update_xaxes(showgrid=False, tickfont=dict(size=11, color=D.TEXT))
+    return fig
+
+
+def crime_index_by_category(df: pd.DataFrame, top_n: int = 5, height: int = 380) -> go.Figure:
+    """Index trajectories of the top N crime categories benchmarked to their Jan volume."""
+    if df.empty:
+        return _empty(height=height)
+    
+    top_cats = df[C.COL_CATEGORY].value_counts().head(top_n).index.tolist()
+    months = _month_range(df)
+    m_labels = _month_names(months)
+    
+    fig = go.Figure()
+    
+    # Baseline line at 100
+    fig.add_hline(
+        y=100, line_width=1.5, line_dash="dash", line_color=D.BORDER,
+        annotation_text="Jan Baseline (100)", annotation_position="top left",
+        annotation_font=dict(size=10, color=D.TEXT_MUTED),
+    )
+    
+    for i, cat in enumerate(top_cats):
+        cat_df = df[df[C.COL_CATEGORY] == cat]
+        counts = cat_df.groupby("Month").size().reindex(months, fill_value=0)
+        jan_vol = counts.get(1, 0)
+        if jan_vol == 0:
+            pos = counts[counts > 0]
+            jan_vol = pos.iloc[0] if not pos.empty else 1
+            
+        index_vals = (counts / jan_vol * 100).round(1)
+        color, _ = _category_color(cat)
+        
+        fig.add_trace(go.Scatter(
+            x=m_labels,
+            y=index_vals.values,
+            mode="lines+markers",
+            name=cat,
+            line=dict(color=color, width=2.5),
+            marker=dict(size=6, color=color, line=dict(color=D.SURFACE, width=1.5)),
+            customdata=counts.values,
+            hovertemplate=(
+                f"<b>{cat}</b> - %{{x}}<br>"
+                "Index: <b>%{y:.1f}</b><br>"
+                "Volume: <b>%{customdata:,}</b> news"
+                "<extra></extra>"
+            ),
+        ))
+        
+    _base_layout(fig, height, legend=True, margin=dict(l=16, r=16, t=28, b=24))
+    fig.update_yaxes(title=dict(text="Index (Jan = 100)", font=dict(size=11, color=D.TEXT_MUTED)), showgrid=True, gridcolor=D.GRID)
+    fig.update_xaxes(showgrid=False)
+    return fig
+
+
+def quarterly_performance_chart(df: pd.DataFrame, height: int = 380) -> go.Figure:
+    """Quarterly Crime Volume and Crime Index (Q1, Q2, Q3, Q4) with QoQ indicators."""
+    if df.empty:
+        return _empty(height=height)
+    
+    temp = df.copy()
+    temp["Quarter"] = "Q" + ((temp["Month"] - 1) // 3 + 1).astype(str)
+    all_quarters = ["Q1", "Q2", "Q3", "Q4"]
+    q_counts = temp.groupby("Quarter").size().reindex(all_quarters, fill_value=0)
+    
+    # Base Q1 volume for quarterly index
+    q1_vol = q_counts.get("Q1", 0)
+    if q1_vol == 0:
+        pos = q_counts[q_counts > 0]
+        q1_vol = pos.iloc[0] if not pos.empty else 1
+        
+    q_index = (q_counts / q1_vol * 100).round(1)
+    qoq_growth = (q_counts.pct_change() * 100).round(1)
+    
+    fig = go.Figure()
+    
+    q_labels = ["Q1 (Jan–Mar)", "Q2 (Apr–Jun)", "Q3 (Jul–Sep)", "Q4 (Oct–Dec)"]
+    bar_colors = [D.MAROON, D.STEEL_BLUE, D.CRIMSON, "#8A1821"]
+    
+    bar_labels = []
+    for i, (q, vol) in enumerate(q_counts.items()):
+        if i == 0:
+            bar_labels.append(f"<b>{vol:,}</b><br><span style='font-size:11px;color:#6B7280;'>Base (100.0)</span>")
+        else:
+            growth = qoq_growth.iloc[i]
+            sign = "+" if growth > 0 else ""
+            color = D.CRIMSON if growth >= 0 else D.STEEL_BLUE
+            bar_labels.append(f"<b>{vol:,}</b><br><span style='font-size:11px;color:{color};'>{sign}{growth:.1f}% QoQ</span>")
+            
+    fig.add_bar(
+        x=q_labels,
+        y=q_counts.values,
+        marker=dict(color=bar_colors, line=dict(color=D.SURFACE, width=2)),
+        text=bar_labels,
+        textposition="outside",
+        textfont=dict(family=D.FONT_UI, size=12, color=D.TEXT),
+        customdata=np.stack((q_index.values, qoq_growth.fillna(0).values), axis=-1),
+        hovertemplate=(
+            "<b>%{x}</b><br>"
+            "Total Crimes: <b>%{y:,}</b><br>"
+            "Quarterly Index (Q1=100): <b>%{customdata[0]:.1f}</b><br>"
+            "QoQ Growth: <b>%{customdata[1]:+.1f}%</b>"
+            "<extra></extra>"
+        ),
+        cliponaxis=False,
+    )
+    
+    max_vol = q_counts.max()
+    _base_layout(fig, height, legend=False, margin=dict(l=16, r=16, t=28, b=28))
+    fig.update_yaxes(
+        title=dict(text="Total Reported News", font=dict(size=11, color=D.TEXT_MUTED)),
+        showgrid=True,
+        gridcolor=D.GRID,
+        range=[0, max_vol * 1.32 if max_vol > 0 else 100],
+    )
+    fig.update_xaxes(showgrid=False, tickfont=dict(size=11, color=D.TEXT))
+    return fig
+
+
+def quarterly_lethality_chart(df: pd.DataFrame, height: int = 360) -> go.Figure:
+    """Fatal vs Non-fatal crimes and Lethality Rate across the four quarters."""
+    if df.empty:
+        return _empty(height=height)
+    
+    temp = df.copy()
+    temp["Quarter"] = "Q" + ((temp["Month"] - 1) // 3 + 1).astype(str)
+    all_quarters = ["Q1", "Q2", "Q3", "Q4"]
+    q_labels = ["Q1 (Jan–Mar)", "Q2 (Apr–Jun)", "Q3 (Jul–Sep)", "Q4 (Oct–Dec)"]
+    
+    grouped = temp.groupby(["Quarter", "Fatal"]).size().unstack(fill_value=0).reindex(all_quarters, fill_value=0)
+    fatal_counts = grouped.get(True, pd.Series(0, index=all_quarters))
+    non_fatal_counts = grouped.get(False, pd.Series(0, index=all_quarters))
+    total_q = fatal_counts + non_fatal_counts
+    lethality_rate = (fatal_counts / total_q.replace(0, np.nan) * 100).fillna(0.0).round(1)
+    
+    fig = go.Figure()
+    
+    fig.add_bar(
+        x=q_labels, y=fatal_counts.values, name="Fatal News",
+        marker=dict(color=D.FATAL_COLOR, line=dict(color=D.SURFACE, width=1.5)),
+        hovertemplate="%{x}<br>Fatal News: <b>%{y:,}</b><extra></extra>",
+    )
+    fig.add_bar(
+        x=q_labels, y=non_fatal_counts.values, name="Non-Fatal News",
+        marker=dict(color=D.NON_FATAL_COLOR, line=dict(color=D.SURFACE, width=1.5)),
+        hovertemplate="%{x}<br>Non-Fatal News: <b>%{y:,}</b><extra></extra>",
+    )
+    
+    fig.add_trace(go.Scatter(
+        x=q_labels, y=lethality_rate.values, name="Lethality Rate (%)",
+        mode="lines+markers+text", yaxis="y2",
+        line=dict(color="#C26A10", width=3),
+        marker=dict(size=9, color="#C26A10", line=dict(color=D.SURFACE, width=2)),
+        text=[f"<b>{lr:.1f}%</b>" for lr in lethality_rate.values],
+        textposition="top center",
+        textfont=dict(size=11, color="#C26A10", family=D.FONT_UI),
+        hovertemplate="%{x}<br>Lethality Rate: <b>%{y:.1f}%</b><extra></extra>",
+    ))
+    
+    _base_layout(fig, height, legend=True, margin=dict(l=16, r=40, t=28, b=24))
+    fig.update_layout(
+        barmode="stack",
+        yaxis2=dict(
+            title=dict(text="Lethality Rate (%)", font=dict(size=11, color="#C26A10")),
+            overlaying="y",
+            side="right",
+            range=[0, max(lethality_rate.max() * 1.5, 40)],
+            ticksuffix="%",
+            showgrid=False,
+            tickfont=dict(size=11, color="#C26A10"),
+        ),
+    )
+    fig.update_yaxes(title=dict(text="News Count", font=dict(size=11, color=D.TEXT_MUTED)), showgrid=True, gridcolor=D.GRID)
+    fig.update_xaxes(showgrid=False)
+    return fig
+
+
+def quarterly_category_shift(df: pd.DataFrame, top_n: int = 6, height: int = 380) -> go.Figure:
+    """Quarterly breakdown of top crime categories to spot seasonal shifts."""
+    if df.empty:
+        return _empty(height=height)
+    
+    top_cats = df[C.COL_CATEGORY].value_counts().head(top_n).index.tolist()
+    temp = df[df[C.COL_CATEGORY].isin(top_cats)].copy()
+    temp["Quarter"] = "Q" + ((temp["Month"] - 1) // 3 + 1).astype(str)
+    all_quarters = ["Q1", "Q2", "Q3", "Q4"]
+    q_labels = ["Q1 (Jan–Mar)", "Q2 (Apr–Jun)", "Q3 (Jul–Sep)", "Q4 (Oct–Dec)"]
+    
+    matrix = temp.groupby(["Quarter", C.COL_CATEGORY]).size().unstack(fill_value=0).reindex(all_quarters, fill_value=0)
+    
+    fig = go.Figure()
+    for cat in top_cats:
+        if cat in matrix.columns:
+            color, _ = _category_color(cat)
+            fig.add_bar(
+                x=q_labels,
+                y=matrix[cat].values,
+                name=cat,
+                marker=dict(color=color, line=dict(color=D.SURFACE, width=1.5)),
+                hovertemplate=f"<b>{cat}</b><br>%{{x}}: <b>%{{y:,}}</b> news<extra></extra>",
+            )
+            
+    fig.update_layout(barmode="group", bargap=0.28, bargroupgap=0.08)
+    _base_layout(fig, height, legend=True, margin=dict(l=16, r=16, t=28, b=24))
+    fig.update_yaxes(title=dict(text="News Volume", font=dict(size=11, color=D.TEXT_MUTED)), showgrid=True, gridcolor=D.GRID)
+    fig.update_xaxes(showgrid=False)
+    return fig
+
