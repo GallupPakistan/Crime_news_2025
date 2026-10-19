@@ -11,7 +11,7 @@ import design as D
 import filterbar
 import sidebar
 import topbar
-from pages import (casualties, crime_categories, geography, news_explorer,
+from pages import (casualties, crime_categories, crime_index, geography, news_explorer,
                    overview, sources_language, time_analysis)
 
 st.set_page_config(
@@ -36,6 +36,7 @@ def _make_page(module):
 
 PAGES = [
     ("Overview", ":material/dashboard:", overview, True),
+    ("Crime Index & Reports", ":material/trending_up:", crime_index, False),
     ("Crime Categories", ":material/category:", crime_categories, False),
     ("Geography", ":material/location_on:", geography, False),
     ("Casualties", ":material/healing:", casualties, False),
