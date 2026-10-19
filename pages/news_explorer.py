@@ -29,6 +29,10 @@ def render(df) -> None:
             mask = mask | view[col].astype("string").str.contains(q, case=False, regex=False, na=False)
         view = view[mask]
 
+    if view.empty:
+        UI.empty_state("Please select something to show.")
+        return
+
     view = view.sort_values("Published_Date", ascending=False)
     top_left, top_right = st.columns([3, 1], gap="medium")
     with top_left:

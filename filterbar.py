@@ -8,19 +8,12 @@ import config as C
 from data import Filters
 import design as D
 
-_KEYS = {
-    "language": "flt_language",
-    "months": "flt_months",
-    "categories": "flt_categories",
-    "sources": "flt_sources",
-}
+if "flt_version" not in st.session_state:
+    st.session_state["flt_version"] = 0
 
 
 def _reset() -> None:
-    st.session_state[_KEYS["language"]] = "All"
-    st.session_state.pop(_KEYS["months"], None)
-    st.session_state[_KEYS["categories"]] = []
-    st.session_state[_KEYS["sources"]] = []
+    st.session_state["flt_version"] = st.session_state.get("flt_version", 0) + 1
 
 
 def render(full: pd.DataFrame) -> Filters:
@@ -29,6 +22,18 @@ def render(full: pd.DataFrame) -> Filters:
     month_names = [C.MONTH_LABELS[m - 1] for m in month_numbers]
     categories = full[C.COL_CATEGORY].value_counts().index.tolist()
     sources = sorted(full[C.COL_SOURCE].unique().tolist())
+
+    ver = st.session_state.get("flt_version", 0)
+    key_lang = f"flt_language_{ver}"
+    key_months = f"flt_months_{ver}"
+    key_cats = f"flt_categories_{ver}"
+    key_sources = f"flt_sources_{ver}"
+
+    # Clean up keys from previous version if any
+    if ver > 0:
+        prev_ver = ver - 1
+        for prefix in ("flt_language", "flt_months", "flt_categories", "flt_sources"):
+            st.session_state.pop(f"{prefix}_{prev_ver}", None)
 
     with st.container(border=True):
         st.markdown(
@@ -48,7 +53,8 @@ def render(full: pd.DataFrame) -> Filters:
             language = st.radio(
                 "Language",
                 ["All", "Urdu", "English"],
-                key=_KEYS["language"],
+                index=0,
+                key=key_lang,
                 horizontal=True,
                 help="Filter news by publication language",
             )
@@ -57,7 +63,7 @@ def render(full: pd.DataFrame) -> Filters:
                 "Months (Range)",
                 options=month_names,
                 value=(month_names[0], month_names[-1]),
-                key=_KEYS["months"],
+                key=key_months,
             )
             if isinstance(month_sel, str):
                 month_sel = (month_sel, month_sel)
@@ -66,7 +72,8 @@ def render(full: pd.DataFrame) -> Filters:
             chosen_categories = st.multiselect(
                 "Crime Category",
                 categories,
-                key=_KEYS["categories"],
+                default=[],
+                key=key_cats,
                 placeholder="All categories",
             )
 
@@ -74,13 +81,14 @@ def render(full: pd.DataFrame) -> Filters:
             chosen_sources = st.multiselect(
                 "Source / Channel",
                 sources,
-                key=_KEYS["sources"],
+                default=[],
+                key=key_sources,
                 placeholder="All sources",
             )
 
         with c5:
             st.markdown("<div style='height:28px'></div>", unsafe_allow_html=True)
-            st.button("Reset", on_click=_reset, width="stretch", help="Reset all filters")
+            st.button("Reset", on_click=_reset, width="stretch", help="Reset all filters to default")
 
     first, last = month_sel
     return Filters(
@@ -92,3 +100,4 @@ def render(full: pd.DataFrame) -> Filters:
         categories=list(chosen_categories),
         sources=list(chosen_sources),
     )
+
