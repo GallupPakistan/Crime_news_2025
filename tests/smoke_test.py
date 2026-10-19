@@ -27,7 +27,7 @@ def load() -> pd.DataFrame:
 
 def chart_functions():
     for name, fn in inspect.getmembers(charts, inspect.isfunction):
-        if name.startswith("_") or name == "configure":
+        if name.startswith("_") or name in ("configure", "calculate_crime_index"):
             continue
         if fn.__module__ != charts.__name__:
             continue
@@ -74,6 +74,12 @@ def main() -> int:
     }
     built = 0
     for scenario, frame in scenarios.items():
+        try:
+            idf = charts.calculate_crime_index(frame)
+            assert isinstance(idf, pd.DataFrame), "calculate_crime_index did not return a DataFrame"
+        except Exception as exc:  # noqa: BLE001
+            failures.append(f"[{scenario}] calculate_crime_index: {type(exc).__name__}: {exc}")
+
         for name, fn in chart_functions():
             try:
                 fig = fn(frame)
