@@ -2,9 +2,14 @@
 
 Run:  streamlit run app.py
 """
+import importlib
 import streamlit as st
 
 import charts
+# In persistent environments (like Streamlit Cloud), reload charts if stale in memory
+if not hasattr(charts, "calculate_crime_index"):
+    charts = importlib.reload(charts)
+
 import config as C
 import data
 import design as D

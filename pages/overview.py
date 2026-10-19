@@ -1,7 +1,11 @@
 """Overview page."""
+import importlib
 import streamlit as st
 
 import charts
+if not hasattr(charts, "calculate_crime_index"):
+    charts = importlib.reload(charts)
+
 import components as UI
 import config as C
 import design as D

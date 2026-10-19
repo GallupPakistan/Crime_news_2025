@@ -5,10 +5,14 @@ structured 4-Quarter (Q1-Q4) Executive Intelligence Reports.
 """
 from __future__ import annotations
 
+import importlib
 import pandas as pd
 import streamlit as st
 
 import charts
+if not hasattr(charts, "calculate_crime_index"):
+    charts = importlib.reload(charts)
+
 import components as UI
 import config as C
 import design as D
