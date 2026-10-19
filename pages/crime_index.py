@@ -97,7 +97,7 @@ def render(df: pd.DataFrame) -> None:
                         "MoM Shift (%)": "{:+.1f}%",
                     }),
                     hide_index=True,
-                    use_container_width=True,
+                    width="stretch",
                     height=330,
                 )
 
@@ -215,7 +215,7 @@ def render(df: pd.DataFrame) -> None:
                         "Total Injured": "{:,}",
                     }),
                     hide_index=True,
-                    use_container_width=True,
+                    width="stretch",
                 )
                 
                 # CSV Export button
