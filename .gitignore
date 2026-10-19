@@ -85,3 +85,17 @@ Thumbs.db
 *.log
 *.tmp
 *.bak
+
+# Agent & GSD Framework / Development Tooling
+.agent/
+.agents/
+.gemini/
+.gsd/
+adapters/
+scripts/
+docs/
+GSD-STYLE.md
+PROJECT_RULES.md
+VERSION
+model_capabilities.yaml
+
