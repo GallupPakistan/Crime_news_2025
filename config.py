@@ -20,6 +20,11 @@ SOURCE_FIXES = {
     "City42_Urdu_Crime_News_2025": "City42 News",
 }
 
+# Language typo fixes
+LANGUAGE_FIXES = {
+    "Ur": "Urdu",
+}
+
 # Urdu-script city names that have an English twin already present in the data.
 CITY_ALIASES = {
     "حیدرآباد": "Hyderabad",

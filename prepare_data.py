@@ -91,8 +91,10 @@ def main() -> int:
     excluded = int((~in_year).sum())
     df = df[in_year].copy()
 
-    # 2. Source typo
+    # 2. Source & Language typos
     df[C.COL_SOURCE] = df[C.COL_SOURCE].replace(C.SOURCE_FIXES)
+    if hasattr(C, "LANGUAGE_FIXES"):
+        df[C.COL_LANGUAGE] = df[C.COL_LANGUAGE].replace(C.LANGUAGE_FIXES)
 
     # 3. City aliases (only where the English name already exists in the data)
     df[C.COL_CITY] = df[C.COL_CITY].astype("object")
@@ -132,6 +134,9 @@ def main() -> int:
 
     C.DATA_DIR.mkdir(exist_ok=True)
     out.to_parquet(C.PARQUET_PATH, index=False)
+    gather_dir = C.DATA_DIR / "crime data gather"
+    if gather_dir.exists():
+        out.to_parquet(gather_dir / "crime.parquet", index=False)
 
     # ----------------------------------------------------------- Verification
     print("\nPreparation summary")
