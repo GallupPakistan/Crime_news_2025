@@ -5,19 +5,29 @@ from pathlib import Path
 BASE_DIR = Path(__file__).resolve().parent
 DATA_DIR = BASE_DIR / "data"
 EXCEL_PATH = DATA_DIR / "Crime_News_Analysis.xlsx"
+CSV_2026_PATH = DATA_DIR / "Master_Crime_Data_2026.csv"
 PARQUET_PATH = DATA_DIR / "crime.parquet"
 EXCEL_SHEET = "Data"
 
 # Business rules
 DATA_YEAR = 2025
+DATA_YEARS = [2025, 2026]
 CASUALTY_CAP = 50
 NOT_SPECIFIED_CITY = "Not Specified"
 
 LANGUAGES = ["Urdu", "English"]
 
-# Source name typo fixes
+# Source name typo & harmonization fixes
 SOURCE_FIXES = {
     "City42_Urdu_Crime_News_2025": "City42 News",
+    "City42": "City42 News",
+    "Nawa-i-Waqt": "Nawaiwaqt",
+    "Jang": "Jang News",
+    "Express": "Express News",
+    "24 News": "24 News HD",
+    "Mashriq": "Daily Mashriq",
+    "Hamariweb": "Hamariweb News",
+    "AbbTak": "Abb Takk News",
 }
 
 # Language typo fixes

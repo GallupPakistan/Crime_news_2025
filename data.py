@@ -21,6 +21,8 @@ def load_data() -> pd.DataFrame:
     df = pd.read_parquet(C.PARQUET_PATH)
     df[C.COL_DATE] = pd.to_datetime(df[C.COL_DATE])
     df["Date"] = pd.to_datetime(df["Date"])
+    if "Year" not in df.columns:
+        df["Year"] = df[C.COL_DATE].dt.year.astype("int16")
     return df
 
 
@@ -28,6 +30,7 @@ def load_data() -> pd.DataFrame:
 class Filters:
     """Global filter selection."""
 
+    year: str = "All (2025 - 2026)"              # All (2025 - 2026) / 2026 / 2025
     language: str = "All"                       # All / Urdu / English
     month_range: tuple[int, int] = (1, 12)      # inclusive month numbers
     categories: list[str] = field(default_factory=list)   # empty = all
@@ -37,6 +40,8 @@ class Filters:
 def apply_filters(df: pd.DataFrame, f: Filters) -> pd.DataFrame:
     """Return the rows that match the selected filters."""
     mask = df["Month"].between(f.month_range[0], f.month_range[1])
+    if str(f.year).strip() in ("2025", "2026") or str(f.year).strip().isdigit():
+        mask &= df["Year"] == int(f.year)
     if f.language in C.LANGUAGES:
         mask &= df[C.COL_LANGUAGE] == f.language
     if f.categories:

@@ -46,7 +46,7 @@ def render(df) -> None:
     # Row 2: Monthly Crime Index Trend & MoM Growth Velocity
     left, right = st.columns(D.RATIO_1_1, gap=D.GAP)
     with left:
-        UI.chart_card("Monthly Crime Index Trend (Jan 2025 = 100)", charts.crime_index_trend(df, height=360), "ov_index",
+        UI.chart_card("Monthly Crime Index Trend (Jan Baseline = 100)", charts.crime_index_trend(df, height=360), "ov_index",
                       "Standardized benchmark tracking if months saw more or fewer crimes than January")
     with right:
         UI.chart_card("Month-over-Month (MoM) Growth Velocity", charts.monthly_growth_velocity(df, height=360), "ov_growth",

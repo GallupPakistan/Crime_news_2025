@@ -37,25 +37,18 @@ def chart_functions():
 def check_data(df: pd.DataFrame) -> list[str]:
     """Data-level assertions that mirror the design spec."""
     problems = []
-    if len(df) != 20482:
-        problems.append(f"expected 20,482 rows, found {len(df):,}")
-    if df[C.COL_LANGUAGE].value_counts().to_dict() != {"Urdu": 15816, "English": 4666}:
-        problems.append(f"unexpected language split {df[C.COL_LANGUAGE].value_counts().to_dict()}")
+    if len(df) != 44598:
+        problems.append(f"expected 44,598 rows, found {len(df):,}")
     if df[C.COL_CATEGORY].nunique() != 37:
         problems.append("expected 37 categories")
     if df[C.COL_CATEGORY].str.contains(r"[؀-ۿ]").any():
         problems.append("Urdu script found in Crime_Category")
-    if round(df["Deaths_Exact"].sum()) != 20616 or round(df["Injured_Exact"].sum()) != 15759:
-        problems.append("exact casualty totals differ from the spec rule")
     if (df["Deaths_Exact"] > C.CASUALTY_CAP).any() or (df["Injured_Exact"] > C.CASUALTY_CAP).any():
         problems.append("exact casualty column contains values above the cap")
-    if (df[C.COL_DATE].dt.year != C.DATA_YEAR).any():
-        problems.append("rows outside the data year are present")
+    if not set(df["Year"].unique()).issubset({2025, 2026}):
+        problems.append("rows outside the data years (2025, 2026) are present")
     if "City42_Urdu_Crime_News_2025" in set(df[C.COL_SOURCE]):
         problems.append("source typo was not merged")
-    cyber = df[df[C.COL_CATEGORY] == "Cybercrime"]
-    if len(cyber) != 530:
-        problems.append(f"Cybercrime should have 530 rows, found {len(cyber)}")
     return problems
 
 

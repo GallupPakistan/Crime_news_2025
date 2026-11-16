@@ -19,9 +19,12 @@ import design as D
 
 
 def render(df: pd.DataFrame) -> None:
+    years_in_df = sorted(df["Year"].unique().tolist()) if "Year" in df.columns and not df.empty else []
+    year_str = f"{years_in_df[0]}" if len(years_in_df) == 1 else ("2025 - 2026" if len(years_in_df) > 1 else "2025")
+
     UI.page_header(
         "Crime Index & Quarterly Reports",
-        "Standardized Base-100 Crime Index (Jan 2025 = 100) and 4-Quarter Executive Intelligence Briefings",
+        f"Standardized Base-100 Crime Index (Jan Baseline = 100) and 4-Quarter Executive Intelligence Briefings ({year_str})",
     )
     if df.empty:
         UI.empty_state()
@@ -49,11 +52,11 @@ def render(df: pd.DataFrame) -> None:
     avg_index = idx_df["Index"].mean()
 
     UI.kpi_row([
-        ("Baseline (Jan 2025)", "100.0", f"{jan_vol:,} reported crimes (Base)"),
+        ("Baseline (Jan)", "100.0", f"{jan_vol:,} reported crimes (Base)"),
         (f"Latest Index ({latest_month})", f"{latest_idx:.1f}", f"{delta_sign}{latest_delta:.1f}% vs Jan baseline"),
         ("Peak Month Index", f"{peak_row['Index']:.1f}", f"{peak_row['Month_Label']} ({peak_row['Volume']:,} crimes)"),
         ("Lowest Month Index", f"{low_row['Index']:.1f}", f"{low_row['Month_Label']} ({low_row['Volume']:,} crimes)"),
-        ("Annual Mean Index", f"{avg_index:.1f}", "Average 2025 index level"),
+        ("Mean Index", f"{avg_index:.1f}", f"Average {year_str} index level"),
     ])
     UI.spacer(12)
 
@@ -128,10 +131,10 @@ def render(df: pd.DataFrame) -> None:
         # Quarter Selector
         q_options = [
             "All Quarters Overview",
-            "Q1 2025 (Jan – Mar)",
-            "Q2 2025 (Apr – Jun)",
-            "Q3 2025 (Jul – Sep)",
-            "Q4 2025 (Oct – Dec)",
+            f"Q1 (Jan – Mar)",
+            f"Q2 (Apr – Jun)",
+            f"Q3 (Jul – Sep)",
+            f"Q4 (Oct – Dec)",
         ]
         selected_q_view = st.pills("Select Quarterly Report View:", q_options, default=q_options[0])
         
@@ -167,7 +170,7 @@ def render(df: pd.DataFrame) -> None:
             
             # Full 4-Quarter Comparative Table
             with st.container(border=True):
-                st.markdown('<div class="card-title">4-Quarter Executive Performance Matrix (2025)</div>', unsafe_allow_html=True)
+                st.markdown(f'<div class="card-title">4-Quarter Executive Performance Matrix ({year_str})</div>', unsafe_allow_html=True)
                 
                 q_summary = []
                 q_codes = ["Q1", "Q2", "Q3", "Q4"]
@@ -227,7 +230,7 @@ def render(df: pd.DataFrame) -> None:
                 st.download_button(
                     label="📥 Download 4-Quarter Executive Summary (CSV)",
                     data=csv_data,
-                    file_name="Gallup_Pakistan_Crime_Quarterly_Report_2025.csv",
+                    file_name=f"Gallup_Pakistan_Crime_Quarterly_Report_{year_str}.csv",
                     mime="text/csv",
                     use_container_width=False,
                 )
@@ -336,8 +339,8 @@ def render(df: pd.DataFrame) -> None:
                 ]].copy()
                 csv_bytes = q_export_data.to_csv(index=False).encode("utf-8")
                 st.download_button(
-                    label=f"📥 Download {q_code} 2025 Incident Data (CSV)",
+                    label=f"📥 Download {q_code} ({year_str}) Incident Data (CSV)",
                     data=csv_bytes,
-                    file_name=f"Gallup_Crime_Data_{q_code}_2025.csv",
+                    file_name=f"Gallup_Crime_Data_{q_code}_{year_str}.csv",
                     mime="text/csv",
                 )

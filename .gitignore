@@ -87,19 +87,5 @@ Thumbs.db
 *.bak
 *_backup.*
 
-# Local data drops
-data/crime data gather/
 
-# Agent & GSD Framework / Development Tooling
-.agent/
-.agents/
-.gemini/
-.gsd/
-adapters/
-scripts/
-docs/
-GSD-STYLE.md
-PROJECT_RULES.md
-VERSION
-model_capabilities.yaml
 

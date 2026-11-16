@@ -24,6 +24,7 @@ def render(full: pd.DataFrame) -> Filters:
     sources = sorted(full[C.COL_SOURCE].unique().tolist())
 
     ver = st.session_state.get("flt_version", 0)
+    key_year = f"flt_year_{ver}"
     key_lang = f"flt_language_{ver}"
     key_months = f"flt_months_{ver}"
     key_cats = f"flt_categories_{ver}"
@@ -32,7 +33,7 @@ def render(full: pd.DataFrame) -> Filters:
     # Clean up keys from previous version if any
     if ver > 0:
         prev_ver = ver - 1
-        for prefix in ("flt_language", "flt_months", "flt_categories", "flt_sources"):
+        for prefix in ("flt_year", "flt_language", "flt_months", "flt_categories", "flt_sources"):
             st.session_state.pop(f"{prefix}_{prev_ver}", None)
 
     with st.container(border=True):
@@ -47,9 +48,18 @@ def render(full: pd.DataFrame) -> Filters:
             unsafe_allow_html=True,
         )
 
-        c1, c2, c3, c4, c5 = st.columns([1.1, 1.4, 1.5, 1.4, 0.7], gap="medium")
+        c1, c2, c3, c4, c5, c6 = st.columns([1.1, 1.0, 1.3, 1.4, 1.3, 0.6], gap="small")
 
         with c1:
+            year = st.selectbox(
+                "Year",
+                ["All (2025 - 2026)", "2026", "2025"],
+                index=0,
+                key=key_year,
+                help="Filter data across the entire dashboard by Year",
+            )
+
+        with c2:
             language = st.radio(
                 "Language",
                 ["All", "Urdu", "English"],
@@ -58,7 +68,7 @@ def render(full: pd.DataFrame) -> Filters:
                 horizontal=True,
                 help="Filter news by publication language",
             )
-        with c2:
+        with c3:
             month_sel = st.select_slider(
                 "Months (Range)",
                 options=month_names,
@@ -68,7 +78,7 @@ def render(full: pd.DataFrame) -> Filters:
             if isinstance(month_sel, str):
                 month_sel = (month_sel, month_sel)
 
-        with c3:
+        with c4:
             chosen_categories = st.multiselect(
                 "Crime Category",
                 categories,
@@ -77,7 +87,7 @@ def render(full: pd.DataFrame) -> Filters:
                 placeholder="All categories",
             )
 
-        with c4:
+        with c5:
             chosen_sources = st.multiselect(
                 "Source / Channel",
                 sources,
@@ -86,12 +96,13 @@ def render(full: pd.DataFrame) -> Filters:
                 placeholder="All sources",
             )
 
-        with c5:
+        with c6:
             st.markdown("<div style='height:28px'></div>", unsafe_allow_html=True)
             st.button("Reset", on_click=_reset, width="stretch", help="Reset all filters to default")
 
     first, last = month_sel
     return Filters(
+        year=year,
         language=language,
         month_range=(
             C.MONTH_LABELS.index(first) + 1,

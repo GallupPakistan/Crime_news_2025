@@ -72,7 +72,7 @@ st.session_state["filtered_df"] = filtered
 
 # Render topbar in its container at the very top
 with topbar_container:
-    topbar.render(len(filtered), len(full), filters.language, filters.month_range)
+    topbar.render(len(filtered), len(full), filters.language, filters.month_range, filters.year)
 
 # Render full sidebar: Header Card -> Navigation Links -> Record Count Pill
 sidebar.render(pages_list, len(filtered), len(full))

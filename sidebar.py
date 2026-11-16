@@ -24,7 +24,7 @@ def render(
             <div class="sb-brand-card">
                 <div class="sb-eyebrow">MONITOR</div>
                 <div class="sb-title">{C.APP_TITLE}</div>
-                <div class="sb-desc">{C.DATA_YEAR} Analytics &amp; News Intel</div>
+                <div class="sb-desc">2025 - 2026 Analytics &amp; News Intel</div>
             </div>
             ''',
             unsafe_allow_html=True,
@@ -51,7 +51,7 @@ def render_brand() -> None:
             <div class="sb-brand-card">
                 <div class="sb-eyebrow">MONITOR</div>
                 <div class="sb-title">{C.APP_TITLE}</div>
-                <div class="sb-desc">{C.DATA_YEAR} Analytics &amp; News Intel</div>
+                <div class="sb-desc">2025 - 2026 Analytics &amp; News Intel</div>
             </div>
             ''',
             unsafe_allow_html=True,

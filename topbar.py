@@ -134,12 +134,21 @@ def _css() -> str:
 """
 
 
-def render(shown: int, total: int, language: str, month_range: tuple[int, int]) -> None:
+def render(shown: int, total: int, language: str, month_range: tuple[int, int], year: str = "All (2025 - 2026)") -> None:
     """Draw the top banner."""
     first, last = C.MONTH_LABELS[month_range[0] - 1], C.MONTH_LABELS[month_range[1] - 1]
-    period = f"{first} - {last} {C.DATA_YEAR}" if first != last else f"{first} {C.DATA_YEAR}"
+    
+    if str(year).strip() in ("2025", "2026") or str(year).strip().isdigit():
+        year_display = str(year).strip()
+        sub_text = f"{year_display} news coverage across {total:,} reports in Urdu and English"
+    else:
+        year_display = "2025 - 2026"
+        sub_text = f"2025 - 2026 news coverage across {total:,} reports in Urdu and English"
+
+    period = f"{first} - {last} ({year_display})" if first != last else f"{first} {year_display}"
     lang_text = "Urdu + English" if language == "All" else language
     badges = [
+        ("Year", year_display),
         ("Period", period),
         ("News shown", f"{shown:,}"),
         ("Language", lang_text),
@@ -155,7 +164,7 @@ def render(shown: int, total: int, language: str, month_range: tuple[int, int]) 
         + '<div class="tb-content"><div>'
         + '<div class="tb-eyebrow">Crime &amp; Justice Monitor</div>'
         + f'<h1>{html.escape(C.APP_TITLE)}</h1>'
-        + f'<div class="tb-sub">{C.DATA_YEAR} news coverage across {total:,} reports in Urdu and English</div>'
+        + f'<div class="tb-sub">{html.escape(sub_text)}</div>'
         + '</div>'
         + f'<div class="tb-badges">{badge_html}</div>'
         + '</div></div>'

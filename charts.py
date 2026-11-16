@@ -234,7 +234,8 @@ def calendar_heatmap(df: pd.DataFrame, height: int = 230) -> go.Figure:
     """Day-by-day heatmap: weeks on the x axis, weekdays on the y axis."""
     if df.empty:
         return _empty(height=height)
-    start = pd.Timestamp(year=C.DATA_YEAR, month=int(df["Month"].min()), day=1)
+    min_date = df["Date"].min()
+    start = pd.Timestamp(year=min_date.year, month=int(min_date.month), day=1)
     end = df["Date"].max()
     days = pd.date_range(start, end, freq="D")
     counts = df.groupby("Date").size().reindex(days, fill_value=0)
@@ -252,10 +253,12 @@ def calendar_heatmap(df: pd.DataFrame, height: int = 230) -> go.Figure:
         pct = (v / overall_total * 100) if overall_total > 0 else 0
         hover[wd, w] = f"{d:%a, %d %b %Y}<br><b>{v:,}</b> news ({pct:.2f}%)"
     tick_weeks, tick_text = [], []
-    for m in range(int(df["Month"].min()), int(df["Month"].max()) + 1):
-        first = pd.Timestamp(year=C.DATA_YEAR, month=m, day=1)
-        tick_weeks.append(int((first - first_monday).days // 7))
-        tick_text.append(C.MONTH_LABELS[m - 1])
+    for month_start in pd.date_range(start, end, freq="MS"):
+        tick_weeks.append(int((month_start - first_monday).days // 7))
+        lbl = C.MONTH_LABELS[month_start.month - 1]
+        if min_date.year != end.year:
+            lbl += f" '{str(month_start.year)[2:]}"
+        tick_text.append(lbl)
     fig = go.Figure(go.Heatmap(
         z=z, x=list(range(n_weeks)), y=C.WEEKDAY_LABELS, customdata=hover,
         text=text_matrix, texttemplate="%{text}",
@@ -1352,7 +1355,7 @@ def calculate_crime_index(df: pd.DataFrame) -> pd.DataFrame:
 
 
 def crime_index_trend(df: pd.DataFrame, height: int = 400) -> go.Figure:
-    """Monthly Crime Index Trend with Jan 2025 = 100 Baseline indicator."""
+    """Monthly Crime Index Trend with Jan Baseline = 100 indicator."""
     if df.empty:
         return _empty(height=height)
     
@@ -1360,6 +1363,9 @@ def crime_index_trend(df: pd.DataFrame, height: int = 400) -> go.Figure:
     if idx_df.empty:
         return _empty(height=height)
     
+    years_in_df = df["Date"].dt.year.unique() if not df.empty else []
+    year_lbl = f"{years_in_df[0]}" if len(years_in_df) == 1 else "2025-2026"
+
     fig = go.Figure()
     
     # Baseline 100 reference shading / line
@@ -1368,7 +1374,7 @@ def crime_index_trend(df: pd.DataFrame, height: int = 400) -> go.Figure:
         line_width=2,
         line_dash="dash",
         line_color=D.MAROON,
-        annotation_text="Jan 2025 Baseline (100.0)",
+        annotation_text="Jan Baseline (100.0)",
         annotation_position="top left",
         annotation_font=dict(size=11, color=D.MAROON, family=D.FONT_UI),
     )
@@ -1412,7 +1418,7 @@ def crime_index_trend(df: pd.DataFrame, height: int = 400) -> go.Figure:
         textfont=dict(family=D.FONT_UI, size=11, color=D.TEXT),
         customdata=np.stack((idx_df["Volume"].values, idx_df["Delta_Base_Pct"].values, idx_df["MoM_Pct"].values), axis=-1),
         hovertemplate=(
-            "<b>%{x} 2025</b><br>"
+            f"<b>%{{x}} ({year_lbl})</b><br>"
             "Crime Index: <b>%{y:.1f}</b><br>"
             "Reported Crimes: <b>%{customdata[0]:,}</b><br>"
             "Vs Jan Baseline: <b>%{customdata[1]:+.1f}%</b><br>"
@@ -1429,7 +1435,7 @@ def crime_index_trend(df: pd.DataFrame, height: int = 400) -> go.Figure:
     
     _base_layout(fig, height, legend=False, margin=dict(l=16, r=16, t=24, b=24))
     fig.update_yaxes(
-        title=dict(text="Crime Index (Jan 2025 = 100)", font=dict(size=11, color=D.TEXT_MUTED)),
+        title=dict(text=f"Crime Index (Jan Baseline = 100)", font=dict(size=11, color=D.TEXT_MUTED)),
         range=[y_min, y_max],
         showgrid=True,
         gridcolor=D.GRID,
