@@ -45,7 +45,3 @@ jobs:
                   print("No sleep button found — app was already awake.")
 
               browser.close()
-          EOF
-
-      - name: Done
-        run: echo "Ping/wake attempt finished."
