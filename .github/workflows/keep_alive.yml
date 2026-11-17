@@ -3,7 +3,7 @@ name: Keep Streamlit App Awake
 on:
   schedule:
     - cron: "13 */6 * * *"   # har 6 ghante mein chalega
-  workflow_dispatch:   # manual trigger ka option
+  workflow_dispatch:
 
 jobs:
   wake-and-ping:
@@ -33,19 +33,20 @@ jobs:
               print(f"Visiting {APP_URL} ...")
               page.goto(APP_URL, wait_until="networkidle", timeout=60000)
 
-              # Check if the "wake up" button exists (app is sleeping)
               wake_button = page.get_by_text("get this app back up", exact=False)
               try:
                   wake_button.wait_for(state="visible", timeout=5000)
                   print("App is sleeping — clicking wake-up button...")
                   wake_button.click()
-                  page.wait_for_timeout(15000)  # wait for app to boot
+                  page.wait_for_timeout(15000)
                   print("Wake-up click sent.")
               except Exception:
                   print("No sleep button found — app was already awake.")
 
-              browser.close()kee
+              browser.close()
           EOF
 
       - name: Done
         run: echo "Ping/wake attempt finished."
+
+ab Theek hai
